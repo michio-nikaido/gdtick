@@ -28,9 +28,10 @@ def fetch_quote(ticker: Ticker, symbol: str) -> dict | None:
         price = data["regularMarketPrice"]
         change = data["regularMarketChange"]
         pct = data["regularMarketChangePercent"] * 100
+        prev_close = data["regularMarketPreviousClose"]
     except (KeyError, TypeError):
         return None
-    return {"price": price, "change": change, "pct": pct}
+    return {"price": price, "change": change, "pct": pct, "prev_close": prev_close}
 
 
 def fetch_history(ticker: Ticker) -> list[tuple[float, float]]:
@@ -111,6 +112,7 @@ def main() -> None:
 
     # Chart state
     history: list[tuple[float, float]] = []
+    prev_close: float | None = None
     last_history_fetch = 0.0
 
     def draw_chart():
@@ -124,8 +126,11 @@ def main() -> None:
             return
 
         prices = [p for _, p in history]
-        min_p = min(prices)
-        max_p = max(prices)
+        all_prices = prices[:]
+        if prev_close is not None:
+            all_prices.append(prev_close)
+        min_p = min(all_prices)
+        max_p = max(all_prices)
         price_range = max_p - min_p
         if price_range == 0:
             price_range = 1.0
@@ -137,6 +142,13 @@ def main() -> None:
             t_range = 1.0
 
         pad = 4
+
+        # Previous close reference line
+        if prev_close is not None:
+            y_ref = pad + (1.0 - (prev_close - min_p) / price_range) * (ch - 2 * pad)
+            canvas.create_line(0, y_ref, cw, y_ref, fill="#555555",
+                               dash=(4, 4), width=1, tags="chart")
+
         points = []
         for ts, price in history:
             x = pad + (ts - t_start) / t_range * (cw - 2 * pad)
@@ -155,7 +167,6 @@ def main() -> None:
         # Scale fonts to fit
         price_size = max(10, min(int(ch * 0.45), int(cw * 0.08)))
         side_size = max(8, min(int(ch * 0.2), int(cw * 0.05)))
-
         canvas.itemconfig(price_id, font=("monospace", price_size, "bold"))
         canvas.itemconfig(change_id, font=("monospace", side_size))
         canvas.itemconfig(pct_id, font=("monospace", side_size))
@@ -167,14 +178,13 @@ def main() -> None:
 
         draw_chart()
         # Ensure text stays above chart
-        canvas.tag_raise(price_id)
-        canvas.tag_raise(change_id)
-        canvas.tag_raise(pct_id)
+        for item in (price_id, change_id, pct_id):
+            canvas.tag_raise(item)
 
     canvas.bind("<Configure>", layout)
 
     def update() -> None:
-        nonlocal history, last_history_fetch
+        nonlocal history, prev_close, last_history_fetch
 
         q = fetch_quote(ticker, symbol)
         if q:
@@ -183,6 +193,7 @@ def main() -> None:
             sign = "+" if q["change"] >= 0 else ""
             canvas.itemconfig(change_id, text=f"{sign}{q['change']:.2f}", fill=color)
             canvas.itemconfig(pct_id, text=f"{sign}{q['pct']:.2f}%", fill=color)
+            prev_close = q["prev_close"]
 
         # Refresh history every 60 seconds
         now = datetime.now().timestamp()
@@ -197,7 +208,10 @@ def main() -> None:
         root.after(1000, update)
 
     update()
-    root.geometry("380x100")
+    # Center on the screen where the mouse pointer currently is
+    root.update_idletasks()
+    px, py = root.winfo_pointerxy()
+    root.geometry(f"380x100+{px - 190}+{py - 50}")
     root.mainloop()
 
 
