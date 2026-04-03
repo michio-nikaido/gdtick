@@ -52,7 +52,7 @@ def fetch_history(ticker: Ticker) -> list[tuple[float, float]]:
 
 def main() -> None:
     if len(sys.argv) < 2:
-        print("Usage: gdtick.py SYMBOL", file=sys.stderr)
+        print("Usage: onetick.py SYMBOL", file=sys.stderr)
         sys.exit(1)
 
     symbol = sys.argv[1].upper()

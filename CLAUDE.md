@@ -1,10 +1,10 @@
-# gdtick
+# onetick
 
 Minimal always-on-top stock ticker for GNOME desktops.
 
 ## Architecture
 
-Single-file uv-python script (`gdtick.py`) — no separate config or build files.
+Single-file uv-python script (`onetick.py`) — no separate config or build files.
 
 ## Stack
 
@@ -15,8 +15,8 @@ Single-file uv-python script (`gdtick.py`) — no separate config or build files
 ## Running
 
 ```bash
-uv run gdtick.py SYMBOL    # foreground
-uv run gdtick.py SYMBOL &>/dev/null & disown  # background
+uv run onetick.py SYMBOL    # foreground
+uv run onetick.py SYMBOL &>/dev/null & disown  # background
 ```
 
 ## UI Controls
